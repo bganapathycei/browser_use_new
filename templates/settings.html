@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header-row" style="margin-bottom: 0.5rem;">
+            <div class="logo-stack">
+                <img src="{{ url_for('static', filename='cei-social.png') }}" alt="Logo" class="logo-img">
+                <img src="{{ url_for('static', filename='CEI-QA-RPA-Logo-Trans.png') }}" alt="Logo" class="logo-img">
+            </div>
+        </div>
+        <div class="side-nav">
+            <button class="nav-btn" onclick="window.location.href='/'" title="Home">
+                <span class="nav-icon">&#8962;</span>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='/settings'" title="Settings">
+                <span class="nav-icon">&#9881;</span>
+                <span class="nav-label">Settings</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='/history'" title="History">
+                <span class="nav-icon">&#128340;</span>
+                <span class="nav-label">History</span>
+            </button>
+        </div>
+        <div class="settings-header-bar">
+            <h1 class="settings-heading">Settings</h1>
+        </div>
+
+        <form id="settings-form" method="POST" action="{{ url_for('settings') }}">
+            <div class="settings-cards-wrapper">
+                <!-- Agent LLM Card -->
+                <div class="settings-card">
+                    <div class="settings-section-title">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor"/>
+                            <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-linecap="round"/>
+                        </svg>
+                        Agent LLM Settings
+                    </div>
+                    <div class="field-group">
+                        <label for="agent-llm">Agent LLM</label>
+                        <select id="agent-llm" name="agent_llm" required>
+                            <option value="gemini" {{ 'selected' if settings.agent_llm == 'gemini' else '' }}>Gemini</option>
+                            <option value="azure_openai" {{ 'selected' if settings.agent_llm == 'azure_openai' else '' }}>Azure OpenAI</option>
+                            <option value="openai" {{ 'selected' if settings.agent_llm == 'openai' else '' }}>OpenAI</option>
+                            <option value="ollama" {{ 'selected' if settings.agent_llm == 'ollama' else '' }}>Ollama</option>
+                        </select>
+                    </div>
+                    <div class="field-group" id="agent-llm-args"></div>
+                    <div class="field-group">
+                        <label for="agent-llm_model-name">Model Name</label>
+                        <input type="text" id="agent-llm_model-name" name="agent-llm_model-name"
+                               value="{{ agentLlmSettings.get('model-name', '') }}" placeholder="e.g. gemini-2.0-flash-exp" />
+                    </div>
+                </div>
+
+                <!-- Planner LLM Card -->
+                <div class="settings-card">
+                    <div class="settings-section-title">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor"/>
+                            <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-linecap="round"/>
+                        </svg>
+                        Planner LLM Settings
+                    </div>
+                    <div class="field-group">
+                        <label for="planner-llm">Planner LLM</label>
+                        <select id="planner-llm" name="planner_llm" required>
+                            <option value="gemini" {{ 'selected' if settings.planner_llm == 'gemini' else '' }}>Gemini</option>
+                            <option value="azure_openai" {{ 'selected' if settings.planner_llm == 'azure_openai' else '' }}>Azure OpenAI</option>
+                            <option value="openai" {{ 'selected' if settings.planner_llm == 'openai' else '' }}>OpenAI</option>
+                            <option value="ollama" {{ 'selected' if settings.planner_llm == 'ollama' else '' }}>Ollama</option>
+                        </select>
+                    </div>
+                    <div class="field-group" id="planner-llm-args"></div>
+                    <div class="field-group">
+                        <label for="planner-llm_model-name">Model Name</label>
+                        <input type="text" id="planner-llm_model-name" name="planner-llm_model-name"
+                               value="{{ plannerLlmSettings.get('model-name', '') }}" placeholder="e.g. gemini-2.0-flash-exp" />
+                    </div>
+                </div>
+
+                <!-- Browser Settings Card -->
+                <div class="settings-card">
+                    <div class="settings-section-title">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor"/>
+                            <path d="M7 7h.01M12 7h.01M17 7h.01M7 12h.01M12 12h.01M17 12h.01M7 17h.01M12 17h.01M17 17h.01" stroke="currentColor" stroke-linecap="round"/>
+                        </svg>
+                        Browser Settings
+                    </div>
+                    <div>
+                        <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="headless-mode" name="headless_mode" value="true" {% if settings.headless_mode %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                            <label for="headless-mode">Headless Mode</label>
+                        </div>
+                        <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="highlight-elements" name="highlight_elements" value="true" {% if settings.highlight_elements %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                            <label for="highlight-elements">Highlight Elements</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="update-button">Save</button>
+            </div>
+        </form>
+    </div>
+    <script src="{{ url_for('static', filename='settings.js') }}"></script>
+    <script>
+    window.agentLlmSettings = {{ agentLlmSettings|tojson | safe }};
+    window.plannerLlmSettings = {{ plannerLlmSettings|tojson | safe }};
+    </script>
+</body>
+</html>
