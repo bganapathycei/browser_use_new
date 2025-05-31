@@ -7,21 +7,5 @@
             "Flipkart",
             "Shopping"
         ]
-    },
-    {
-        "ID": 8,
-        "Task name": "Silver Rate in India",
-        "Task description": "Go to google and search for silver rate in India today.\r\n\r\n",
-        "Tags": [
-            "Silver"
-        ]
-    },
-    {
-        "ID": 9,
-        "Task name": "Google Searching",
-        "Task description": "Go to google and search for google",
-        "Tags": [
-            "Googles"
-        ]
     }
 ]

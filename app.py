@@ -13,6 +13,7 @@ from report_generator import render_report
 import io
 import uuid
 from datetime import datetime
+from flask import abort
 
 load_dotenv()
 
@@ -390,17 +391,31 @@ def api_fetch_screenshot():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
     try:
-        agent = Agent(task=f"go to {url}", browser_profile=browser_config)
+        llm = get_agent_llm()
+        agent = Agent(task=f"go to {url} wait until the page is fully loaded and the <body> element is visible, wait for all network requests to finish, then take a screenshot of the full page", llm=llm, browser_profile=browser_config)
         history = asyncio.run(agent.run())
-        screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
-        if screenshots:
-            # Save the first screenshot to the folder
-            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, 'screenshot1.png')
+        screenshots = []
+        print("history type:", type(history))
+        print("history:", history)
+        if hasattr(history, 'screenshots'):
+            screenshots = history.screenshots()
+        elif isinstance(history, dict) and 'screenshots' in history:
+            screenshots = history['screenshots']
+        print("screenshots:", screenshots)
+        if screenshots and len(screenshots) > 0:
+            filename = f'screenshot_{uuid.uuid4().hex[:8]}.png'
+            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, filename)
             with open(screenshot_path, 'wb') as f:
-                f.write(screenshots[0])
-            return jsonify({'screenshot': f'/screenshots/screenshot1.png'})
+                if isinstance(screenshots[0], str):
+                    import base64
+                    f.write(base64.b64decode(screenshots[1]))
+                else:
+                    f.write(screenshots[0])
+            return jsonify({'screenshot': f'/screenshots/{filename}'})
         return jsonify({'error': 'No screenshot found'}), 404
     except Exception as e:
+        import traceback
+        print("Exception in fetch_screenshot:", traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/fetch_all_screenshots', methods=['POST'])
@@ -410,18 +425,36 @@ def api_fetch_all_screenshots():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
     try:
-        prompt = f"{info}\ngo to {url}" if info else f"go to {url}"
-        agent = Agent(task=prompt, browser_profile=browser_config)
+        llm = get_agent_llm()
+        prompt = (
+            f"{info}\ngo to {url} wait until the page is fully loaded and the <body> element is visible, "
+            "wait for all network requests to finish, then take a screenshot of the full page"
+            if info else
+            f"go to {url} wait until the page is fully loaded and the <body> element is visible, "
+            "wait for all network requests to finish, then take a screenshot of the full page"
+        )
+        agent = Agent(task=prompt, llm=llm, browser_profile=get_browser_profile())
         history = asyncio.run(agent.run())
-        screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
+        screenshots = []
+        if hasattr(history, 'screenshots'):
+            screenshots = history.screenshots()
+        elif isinstance(history, dict) and 'screenshots' in history:
+            screenshots = history['screenshots']
         screenshot_paths = []
         for i, screenshot in enumerate(screenshots):
-            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, f'screenshot{i + 1}.png')
+            filename = f'screenshot_{uuid.uuid4().hex[:8]}_{i+1}.png'
+            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, filename)
             with open(screenshot_path, 'wb') as f:
-                f.write(screenshot)
-            screenshot_paths.append(f'/screenshots/screenshot{i + 1}.png')
+                if isinstance(screenshot, str):
+                    import base64
+                    f.write(base64.b64decode(screenshot))
+                else:
+                    f.write(screenshot)
+            screenshot_paths.append(f'/screenshots/{filename}')
         return jsonify({'screenshots': screenshot_paths})
     except Exception as e:
+        import traceback
+        print("Exception in fetch_all_screenshots:", traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/screenshots/<filename>')
@@ -430,6 +463,9 @@ def serve_screenshot(filename):
 
 @app.route('/api/generate_scenarios', methods=['POST'])
 def api_generate_scenarios():
+    import base64, re
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     data = request.json
     url = data.get('url', '')
     info = data.get('info', '')
@@ -437,7 +473,7 @@ def api_generate_scenarios():
     if not screenshots:
         return jsonify({'error': 'No screenshots provided'}), 400
 
-    # Compose the prompt as per your reference code
+    # Compose the prompt
     task_prompt = f"Additional Notes: {info}" if info else ""
     url_prompt = f"Refer URL if provided: {url}" if url else ""
     prompt = f"""
@@ -469,29 +505,38 @@ def api_generate_scenarios():
     3. Relevant tags (comma-separated)
     
     Format your response as JSON like this:
-    {
+    {{
         "scenarios": [
-        {
+        {{
             "name": "test scenario name",
             "description": "Go to the https://url and do all the potential login related steps...",
             "tags": "sample, tags, here"
-        },
+        }},
         ...
         ]
-    }
+    }}
     """
 
-    # Use the first screenshot for LLM (extend to all if needed)
-    import base64, re
-    from langchain_core.messages import HumanMessage, SystemMessage
+    # Read and encode selected screenshots as base64
+    image_messages = []
+    for filename in screenshots:
+        # Remove leading slash if present
+        filename = filename.lstrip('/')
+        image_path = os.path.join(SCREENSHOTS_FOLDER, os.path.basename(filename))
+        if not os.path.exists(image_path):
+            continue
+        with open(image_path, "rb") as img_file:
+            base64_image = base64.b64encode(img_file.read()).decode('utf-8')
+            image_messages.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}})
+
+    if not image_messages:
+        return jsonify({'error': 'No valid screenshots found'}), 400
+
     try:
-        llm = get_llm()  # You should implement get_llm() as in your reference
+        llm = get_agent_llm()
         messages = [
             SystemMessage(content="You are a QA expert specializing in identifying test scenarios from UI images."),
-            HumanMessage(content=[
-                {"type": "text", "text": prompt},
-                {"type": "image_url", "image_url": {"url": screenshots[0]}}
-            ])
+            HumanMessage(content=[{"type": "text", "text": prompt}] + image_messages)
         ]
         response = llm.invoke(messages)
         json_match = re.search(r'\{[\s\S]*\}', response.content)
@@ -502,6 +547,107 @@ def api_generate_scenarios():
             return jsonify({'error': 'Could not parse JSON from LLM response'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get_models', methods=['POST'])
+def get_models():
+    data = request.json
+    llm_type = data.get("llm_type")
+    api_key = data.get("api_key")
+    endpoint = data.get("endpoint")  # For Azure/OpenAI/Ollama
+
+    # Dummy model lists for demonstration; replace with real API calls
+    if llm_type == "gemini":
+        # Validate Gemini API key (simulate)
+        if not api_key or not api_key.startswith("AIza"):
+            return jsonify({"error": "Invalid Gemini API key"}), 400
+        # Simulate fetching models
+        return jsonify({"models": [
+            "gemini-1.5-pro-latest",
+            "gemini-1.5-flash-latest",
+            "gemini-2.0-flash-exp"
+        ]})
+    elif llm_type == "azure_openai":
+        if not api_key or not endpoint:
+            return jsonify({"error": "Azure API key and endpoint required"}), 400
+        # Simulate fetching models
+        return jsonify({"models": [
+            "gpt-35-turbo",
+            "gpt-4",
+            "gpt-4-32k"
+        ]})
+    elif llm_type == "openai":
+        if not api_key or not api_key.startswith("sk-"):
+            return jsonify({"error": "Invalid OpenAI API key"}), 400
+        return jsonify({"models": [
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "gpt-4o"
+        ]})
+    elif llm_type == "ollama":
+        # No API key needed, just host
+        return jsonify({"models": [
+            "llama2",
+            "mistral",
+            "phi3"
+        ]})
+    else:
+        return jsonify({"error": "Unsupported LLM type"}), 400
+
+def get_agent_llm():
+    settings = load_settings()
+    agent_llm = settings.get("agent_llm", "gemini")
+    agent_llm_args = settings.get("agent_llm_args", {})
+    agent_model = agent_llm_args.get("model-name", "gemini-2.0-flash-exp")
+    if agent_llm == "gemini":
+        return ChatGoogleGenerativeAI(
+            model=agent_model,
+            api_key=SecretStr(agent_llm_args.get("gemini_api_key", os.getenv('GEMINI_API_KEY'))),
+            temperature=0.2,
+            seed=42
+        )
+    elif agent_llm == "azure_openai":
+        return AzureChatOpenAI(
+            model=agent_model,
+            api_version=agent_llm_args.get("azure_openai_api_version", os.getenv('AZURE_OPENAI_API_VERSION')),
+            azure_endpoint=agent_llm_args.get("azure_openai_api_endpoint", os.getenv('AZURE_OPENAI_API_ENDPOINT')),
+            api_key=SecretStr(agent_llm_args.get("azure_openai_api_key", os.getenv('AZURE_OPENAI_API_KEY')))
+        )
+    elif agent_llm == "openai":
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=agent_model,
+            api_key=SecretStr(agent_llm_args.get("openai_api_key", os.getenv('OPENAI_API_KEY')))
+        )
+    elif agent_llm == "ollama":
+        from langchain_community.chat_models import ChatOllama
+        return ChatOllama(
+            model=agent_model,
+            base_url=agent_llm_args.get("ollama_host", "http://localhost:11434")
+        )
+    else:
+        raise ValueError(f"Unsupported agent_llm: {agent_llm}")
+
+@app.route('/api/delete_screenshot', methods=['POST'])
+def api_delete_screenshot():
+    data = request.json
+    filename = data.get('filename', '')
+    if not filename:
+        return jsonify({'error': 'No filename provided'}), 400
+    filename = filename.lstrip('/')
+    file_path = os.path.join(SCREENSHOTS_FOLDER, os.path.basename(filename))
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'File not found'}), 404
+
+def get_browser_profile():
+    settings = load_settings()
+    return BrowserProfile(
+        highlight_elements=settings.get("highlight_elements", False),
+        user_data_dir=None,
+        headless_mode=settings.get("headless_mode", False)
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=True)

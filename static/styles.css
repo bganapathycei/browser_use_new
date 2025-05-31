@@ -6,7 +6,7 @@ body {
 
 /* --- MAIN CONTAINER --- */
 .container {
-    width: 90vw;
+    width: 92vw;
     margin: 1.5em auto;
     background: #fff;
     border-radius: 1.2rem;
@@ -107,47 +107,55 @@ h1 {
 
 /* --- ACTIONS BAR --- */
 .actions-bar {
-    width: 70em;
-    margin: 0 auto 2rem auto;
-    margin-top: 0.5rem;
-    padding: 1.2rem 1.5rem;
-    border: 2px solid #e0e7ff;
-    border-radius: 0.75rem;
-    background: #f8fafc;
-    box-shadow: 0 0.125em 0.375em rgba(60, 72, 88, 0.04);
-    gap: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-
-}
-.actions-bar-left{
-    width: 50em;
-    margin-right: 0%;
-}
-.selected-count {
-    font-weight: 600;
-    color: #2563eb;
-    font-size: 1.1rem;
-    margin-right: 2.2rem;
-}
-/* --- ACTIONS BAR --- */
-.actions-bar {
     width: 100%;
-    max-width: 70em;
-    margin: 0 auto 2rem auto;
-    margin-top: 0.5rem;
-    padding: 1.2rem 1.5rem;
-    border: 0.125em solid #e0e7ff;
-    border-radius: 0.75rem;
+    max-width: 90em;
+    margin: 0 auto 2.5rem auto;
+    margin-top: 1.2rem;
+    padding: 1.5rem 2.5rem;
+    border: 2px solid #e0e7ff;
+    border-radius: 1.2rem;
     background: #f8fafc;
-    box-shadow: 0 0.125em 0.375em rgba(60, 72, 88, 0.04);
+    box-shadow: 0 0.25em 1em rgba(79,70,229,0.06);
     display: flex;
     align-items: center;
-    gap: 1.5em;
+    gap: 2.2em;
     justify-content: flex-start;
     position: relative;
+    min-height: 6.5em;
+}
+
+.actions-bar input[type="text"]#task-search {
+    flex: 2 1 420px;
+    min-width: 320px;
+    max-width: 600px;
+    padding: 1.1em 1.5em;
+    font-size: 1.13em;
+    border: 1.5px solid #c7d2fe;
+    border-radius: 0.8em;
+    background: #f8fafc;
+    color: #1e293b;
+    transition: border 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 6px rgba(99,102,241,0.07);
+    margin-right: 2em;
+}
+
+.actions-bar input[type="text"]#task-search:focus {
+    border: 2px solid #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 2px #6366f1;
+}
+
+.selected-count {
+    font-weight: 700;
+    color: #4f46e5;
+    font-size: 1.13rem;
+    margin-right: 2.5rem;
+    margin-left: 0.5rem;
+    letter-spacing: 0.01em;
+    background: #eef2ff;
+    border-radius: 1.2em;
+    padding: 0.45em 1.1em;
+    display: inline-block;
 }
 
 /* --- ACTION BUTTONS --- */
@@ -176,6 +184,7 @@ h1 {
 .run-button:hover {
     background: #2563eb;
     box-shadow: 0 0.25em 0.75em rgba(6,182,212,0.13);
+    transform: translateY(-2px) scale(1.04);
 }
 #create-btn,
 .create-button {
@@ -186,6 +195,7 @@ h1 {
 .create-button:hover {
     background: #16a34a;
     box-shadow: 0 0.25em 0.75em rgba(16,185,129,0.13);
+    transform: translateY(-2px) scale(1.04);
 }
 .edit-button {
     background: #6366f1;
@@ -221,103 +231,247 @@ h1 {
     box-sizing: border-box;
     margin: 0;
     justify-content: flex-start;
+    align-items: stretch;
 }
 
 /* --- TASK CARD --- */
+/* --- Modern Task Card UI --- */
 .task-card {
+    height: 22em; /* Adjust as needed for your design */
+    min-height: 22em;
+    max-height: 22em;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: stretch;
     width: 100%;
     min-width: 0;
     max-width: 23.125em;
     box-sizing: border-box;
-    height: 100%;
-    background: #f8fafc;
-    border-left: 0.375rem solid #6366f1;
-    padding: 1.125rem;
-    border-radius: 0.625rem;
-    box-shadow: 0 0.125rem 0.5rem rgba(60, 72, 88, 0.08);
-    transition: box-shadow 0.2s;
-    margin-bottom: 1rem;
-}
-.task-card:hover {
-    box-shadow: 0 0.375rem 1.5rem rgba(60, 72, 88, 0.16);
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-left: 5px solid #6366f1;
+    padding: 1.3rem 1.2rem 1.1rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px 0 rgba(60,72,88,0.07);
+    transition: box-shadow 0.18s, border-color 0.18s, transform 0.16s, background 0.18s;
+    margin-bottom: 1.2rem;
+    position: relative;
 }
 
-/* --- TASK CARD HEADER (for checkbox right) --- */
+.task-card:hover {
+    box-shadow: 0 6px 28px 0 rgba(99,102,241,0.13), 0 2px 12px 0 rgba(60,72,88,0.10);
+    border-left-color: #3730a3;
+    background: #f6f7fb;
+    transform: translateY(-2px) scale(1.012);
+}
+
 .task-card-header {
+    flex-shrink: 0;
+    margin-bottom: 0.7em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.5em;
+    gap: 0.7em;
 }
+
+a:hover {
+    color: #3730a3;
+    border-bottom: 1px solid #3730a3;
+}
+.task-card-header h3 {
+    font-size: 1.13rem;
+    font-weight: 800;
+    color: #3730a3;
+    margin: 0;
+    letter-spacing: 0.01em;
+    flex: 1;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+.task-card-description {
+    flex: 1 1 auto;
+    margin: 0.45em 0 0.45em 0;
+    color: #374151;
+    font-size: 1.03em;
+    line-height: 1.6;
+    overflow-y: auto;
+    max-height: 7.5em; /* Adjust for your design */
+    min-height: 4em;
+    padding-right: 0.2em;
+    scrollbar-width: thin;
+    scrollbar-color: #c7d2fe #f8fafc;
+}
+
+.task-card-description::-webkit-scrollbar {
+    width: 0.4em;
+}
+.task-card-description::-webkit-scrollbar-thumb {
+    background: #c7d2fe;
+    border-radius: 0.5em;
+}
+.task-card-description::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 0.5em;
+}
+
 .task-card-checkbox, .task-checkbox {
     margin-left: auto;
     margin-right: 0;
-    transform: scale(1.3);
+    transform: scale(1.2);
+    accent-color: #6366f1;
+    cursor: pointer;
 }
 
-/* --- TASK CARD CONTENT --- */
 .task-card p {
-    margin: 0.3125rem 0;
-    color: #444;
+    margin: 0.35em 0 0.35em 0;
+    color: #374151;
+    font-size: 1.03em;
+    line-height: 1.6;
 }
 
-/* --- TASK CARD BUTTONS --- */
+.task-card p strong {
+    color: #6366f1;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
 .task-card-buttons {
+    margin-top: auto;
+    padding-top: 1.1em;
+    border-top: 1px solid #f1f5f9;
+    background: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.7rem;
-    margin-top: auto;
-    padding-top: 1rem;
-    width: 100%;
-    box-sizing: border-box;
 }
-.task-card-buttons button,
-.task-card-buttons .delete-button {
-    border: none !important; /* Remove border color */
-    border-radius: 2em;
-    font-size: .9em;
-    font-weight: 700;
-    padding: 0.6em 1.5em;
-    min-width: 5.6em;
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s, border 0.2s;
+
+.task-card-actions {
+    gap: 0.6em;
+    display: flex;
+    align-items: center;
 }
+
 .icon-btn {
-    background: none;
-    border: none;
-    padding: 0.2em 0.3em;         /* Reduced padding */
+    background: #f3f4f6;
     border-radius: 50%;
-    cursor: pointer;
+    transition: 
+        background 0.18s, 
+        box-shadow 0.18s, 
+        transform 0.15s, 
+        color 0.18s;
+    box-shadow: 0 1px 4px rgba(99,102,241,0.10);
+    border: none;
+    padding: 0.35em 0.35em;
+    width: 2.3em;
+    height: 2.3em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s;
-    width: 2em;                   /* Set a fixed width */
-    height: 2em;                  /* Set a fixed height */
+    font-size: 1.18em;
+    color: #6366f1;
+    cursor: pointer;
+    outline: none;
+    margin-right: 0.15em;
+    margin-left: 0.05em;
+    position: relative;
 }
 
 .icon-btn svg {
-    width: 1.1em;                 /* Smaller icon size */
-    height: 1.1em;
-    display: block;
+    width: 1.25em;
+    height: 1.25em;
+    stroke-width: 2.2;
+    stroke: currentColor;
+    transition: color 0.18s;
 }
 
-.icon-btn.edit-icon:hover svg path {
-    fill: #3730a3;
+.icon-btn.edit-icon {
+    color: #2563eb;
+    background: #e0e7ff;
 }
-.icon-btn.delete-icon:hover svg path,
-.icon-btn.delete-icon:hover svg {
-    stroke: #b91c1c;
+.icon-btn.edit-icon:hover,
+.icon-btn.edit-icon:focus-visible {
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.13);
+    transform: translateY(-2px) scale(1.08);
 }
-.task-card-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
+
+.icon-btn.delete-icon {
+    color: #ef4444;
+    background: #fee2e2;
+}
+.icon-btn.delete-icon:hover,
+.icon-btn.delete-icon:focus-visible {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(239,68,68,0.13);
+    transform: translateY(-2px) scale(1.08);
+}
+
+/* Add a subtle focus ring for accessibility */
+.icon-btn:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+
+.generate-button {
+    box-shadow: 0 2px 8px rgba(125,36,251,0.08);
+    font-size: 1em;
+    font-weight: 700;
+    border-radius: 2em;
+    padding: 0.6em 1.5em;
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.generate-button:hover {
+    background: #3730a3;
+    color: #fff;
+    transform: translateY(-1px) scale(1.04);
+}
+
+/* --- TAG PILL STYLE WITH MULTIPLE COLORS (SOLID, NO GRADIENTS) --- */
+.tag-pill {
+    display: inline-block;
+    color: #fff;
+    font-size: 0.92em;
+    font-weight: 600;
+    border-radius: 1.2em;
+    padding: 0.22em 0.95em;
+    margin: 0 0.18em 0.18em 0;
+    box-shadow: 0 1px 4px rgba(99,102,241,0.08);
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    transition: background 0.18s, color 0.18s;
+    border: none;
+    cursor: default;
+    user-select: none;
+    background: #6366f1;
+    opacity: 0.95;
+}
+.task-card p .tag-pill:nth-child(1)  { background: #6366f1; }
+.task-card p .tag-pill:nth-child(2)  { background: #06b6d4; }
+.task-card p .tag-pill:nth-child(3)  { background: #22c55e; }
+.task-card p .tag-pill:nth-child(4)  { background: #f59e42; color: #fff; }
+.task-card p .tag-pill:nth-child(5)  { background: #ef4444; }
+.task-card p .tag-pill:nth-child(6)  { background: #a21caf; }
+.task-card p .tag-pill:nth-child(7)  { background: #0ea5e9; }
+.task-card p .tag-pill:nth-child(8)  { background: #14b8a6; }
+.task-card p .tag-pill:nth-child(9)  { background: #f43f5e; }
+.task-card p .tag-pill:nth-child(10) { background: #7c3aed; }
+
+@media (max-width: 900px) {
+    .task-card {
+        max-width: 100%;
+        min-width: 0;
+        padding: 1.1rem 0.7rem 1rem 1.1rem;
+    }
 }
 
 /* --- MODAL OVERLAY --- */
@@ -492,9 +646,9 @@ h1 {
  
 @media (max-width: 900px) {
     .task-card {
-        width: 100%;
-        min-width: 0;
         max-width: 100%;
+        min-width: 0;
+        padding: 1.1rem 0.7rem 1rem 1.1rem;
     }
 }
  
@@ -558,34 +712,38 @@ h1 {
     flex-direction: row;
     gap: 1.5rem;
     background: #f8fafc;
-    border-radius: 1.2rem;
+    border-radius: 1rem;
     box-shadow: 0 0.125em 0.5em rgba(99,102,241,0.10);
-    padding: 1.2rem 0.7rem;
+    padding: 1rem 0.7rem;
     z-index: 10;
     align-items: center;
 }
-.nav-btn {
-    background: #6366f1;
-    color: #fff;
-    border: none;
-    border-radius: 0.8em;
-    padding: 0.7em 1.2em;
-    font-size: 1.08em;
-    font-weight: 700;
-    margin: 0.2em 0;
-    cursor: pointer;
+
+.nav-link {
     display: flex;
     align-items: center;
-    gap: 0.7em;
-    box-shadow: 0 1px 6px rgba(99,102,241,0.08);
-    transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+    text-decoration: none;
+    color: #334155;
+    font-weight: 600;
+    font-size: 1.05em;
+    gap: 0.6em;
+    padding: 0.5em 1em;
+    border-radius: 0.6rem;
+    transition: background 0.2s, color 0.2s;
 }
-.nav-btn:hover {
-    background: #3730a3;
-    box-shadow: 0 4px 16px rgba(99,102,241,0.13);
+
+.nav-link:hover {
+    background: #e0e7ff;
+    color: #3730a3;
 }
+
+.nav-link svg, .nav-icon {
+    width: 20px;
+    height: 20px;
+    color: inherit;
+}
+
 .nav-label {
-    font-size: 1em;
     display: inline-block;
 }
 
@@ -594,8 +752,10 @@ h1 {
     .side-nav {
         right: 0.5rem;
         padding: 0.7rem 0.3rem;
+        gap: 1rem;
     }
 }
+
 @media (max-width: 37.5em) {
     .side-nav {
         position: static;
@@ -607,5 +767,43 @@ h1 {
         padding: 0.2rem 0;
         transform: none;
     }
+
+    .nav-link {
+        padding: 0.4em 0.8em;
+        font-size: 0.95em;
+    }
 }
+
+
+/* --- Tag Pill Style with Multiple Colors --- */
+.tag-pill {
+    display: inline-block;
+    color: #fff;
+    font-size: 0.92em;
+    font-weight: 600;
+    border-radius: 1.2em;
+    padding: 0.22em 0.95em;
+    margin: 0 0.18em 0.18em 0;
+    box-shadow: 0 1px 4px rgba(99,102,241,0.08);
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    transition: background 0.18s, color 0.18s;
+    border: none;
+    cursor: default;
+    user-select: none;
+    background: #6366f1;
+    opacity: 0.95;
+}
+
+/* Add color variations based on tag index using nth-child */
+.task-card p .tag-pill:nth-child(1)  { background: #6366f1; }
+.task-card p .tag-pill:nth-child(2)  { background: #06b6d4; }
+.task-card p .tag-pill:nth-child(3)  { background: #22c55e; }
+.task-card p .tag-pill:nth-child(4)  { background: #f59e42; color: #fff; }
+.task-card p .tag-pill:nth-child(5)  { background: #ef4444; }
+.task-card p .tag-pill:nth-child(6)  { background: #a21caf; }
+.task-card p .tag-pill:nth-child(7)  { background: #0ea5e9; }
+.task-card p .tag-pill:nth-child(8)  { background: #14b8a6; }
+.task-card p .tag-pill:nth-child(9)  { background: #f43f5e; }
+.task-card p .tag-pill:nth-child(10) { background: #7c3aed; }
 

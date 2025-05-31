@@ -18,26 +18,26 @@
                 <img src="{{ url_for('static', filename='CEI-QA-RPA-Logo-Trans.png') }}" alt="Logo" class="logo-img">
             </div>
         </div>
-        <div class="side-nav">
-            <button class="nav-btn" onclick="window.location.href='/'" title="Home">
-                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 24 24">
-                    <path d="M 12 2 A 1 1 0 0 0 11.289062 2.296875 L 1.203125 11.097656 A 0.5 0.5 0 0 0 1 11.5 A 0.5 0.5 0 0 0 1.5 12 L 4 12 L 4 20 C 4 20.552 4.448 21 5 21 L 9 21 C 9.552 21 10 20.552 10 20 L 10 14 L 14 14 L 14 20 C 14 20.552 14.448 21 15 21 L 19 21 C 19.552 21 20 20.552 20 20 L 20 12 L 22.5 12 A 0.5 0.5 0 0 0 23 11.5 A 0.5 0.5 0 0 0 22.796875 11.097656 L 12.716797 2.3027344 A 1 1 0 0 0 12.710938 2.296875 A 1 1 0 0 0 12 2 z"></path>
-                </svg>
-                <span class="nav-label">Home</span>
-            </button>
-            <button class="nav-btn" onclick="window.location.href='/generate'" title="Generate">
-                <span class="nav-icon">&#9889;</span>
-                <span class="nav-label">Generate</span>
-            </button>
-            <button class="nav-btn" onclick="window.location.href='/history'" title="History">
-                <span class="nav-icon">&#128340;</span>
-                <span class="nav-label">History</span>
-            </button>
-            <button class="nav-btn" onclick="window.location.href='/settings'" title="Settings">
-                <span class="nav-icon">&#9881;</span>
-                <span class="nav-label">Settings</span>
-            </button>
-        </div>
+                <div class="side-nav">
+    <a class="nav-link" href="/" title="Home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path d="M 12 2 A 1 1 0 0 0 11.289062 2.296875 L 1.203125 11.097656 A 0.5 0.5 0 0 0 1 11.5 A 0.5 0.5 0 0 0 1.5 12 L 4 12 L 4 20 C 4 20.552 4.448 21 5 21 L 9 21 C 9.552 21 10 20.552 10 20 L 10 14 L 14 14 L 14 20 C 14 20.552 14.448 21 15 21 L 19 21 C 19.552 21 20 20.552 20 20 L 20 12 L 22.5 12 A 0.5 0.5 0 0 0 23 11.5 A 0.5 0.5 0 0 0 22.796875 11.097656 L 12.716797 2.3027344 A 1 1 0 0 0 12.710938 2.296875 A 1 1 0 0 0 12 2 z"></path>
+        </svg>
+        <span class="nav-label">Home</span>
+    </a>
+    <a class="nav-link" href="/generate" title="Generate">
+        <span class="nav-icon">&#9889;</span>
+        <span class="nav-label">Generate</span>
+    </a>
+    <a class="nav-link" href="/history" title="History">
+        <span class="nav-icon">&#128340;</span>
+        <span class="nav-label">History</span>
+    </a>
+    <a class="nav-link" href="/settings" title="Settings">
+        <span class="nav-icon">&#9881;</span>
+        <span class="nav-label">Settings</span>
+    </a>
+</div>
         <div class="generate-main">
             <!-- Left Side: Screenshot & Info -->
             <div class="generate-left">
@@ -66,17 +66,74 @@
     </div>
     <script>
     // Screenshot display and upload logic
-    let screenshots = [];
+    let screenshots = []; 
 
     function addScreenshot(url) {
-        const list = document.getElementById('screenshot-list');
-        const img = document.createElement('img');
-        img.src = url;
-        img.className = 'screenshot-thumb';
-        img.onclick = () => window.open(url, '_blank');
-        list.appendChild(img);
+        screenshots.push({ url, selected: true });
+        renderScreenshots();
     }
 
+    function removeScreenshot(idx) {
+        const removed = screenshots.splice(idx, 1)[0];
+        renderScreenshots();
+        // If screenshot is from server, delete it
+        if (removed.url && removed.url.startsWith('/screenshots/')) {
+            fetch('/api/delete_screenshot', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename: removed.url})
+            });
+        }
+    }
+
+    function toggleScreenshot(idx) {
+        screenshots[idx].selected = !screenshots[idx].selected;
+        renderScreenshots();
+    }
+
+    function renderScreenshots() {
+        const list = document.getElementById('screenshot-list');
+        list.innerHTML = '';
+        screenshots.forEach((item, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.style.display = 'inline-block';
+            wrapper.style.margin = '0 6px 6px 0';
+
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.className = 'screenshot-thumb';
+            img.style.opacity = item.selected ? '1' : '0.4';
+            img.style.border = item.selected ? '2px solid #6366f1' : '2px solid #e0e7ff';
+            img.title = item.selected ? 'Selected for generation' : 'Click to select';
+            img.onclick = () => toggleScreenshot(idx);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '&times;';
+            removeBtn.title = 'Remove';
+            removeBtn.style.position = 'absolute';
+            removeBtn.style.top = '-8px';
+            removeBtn.style.right = '-8px';
+            removeBtn.style.background = '#ef4444';
+            removeBtn.style.color = '#fff';
+            removeBtn.style.border = 'none';
+            removeBtn.style.borderRadius = '50%';
+            removeBtn.style.width = '20px';
+            removeBtn.style.height = '20px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontWeight = 'bold';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeScreenshot(idx);
+            };
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(removeBtn);
+            list.appendChild(wrapper);
+        });
+    }
+
+    // Fetch screenshot
     document.getElementById('fetch-screenshot-btn').onclick = function() {
         const url = document.getElementById('url-input').value.trim();
         if (!url) return alert('Enter a URL');
@@ -92,6 +149,7 @@
         });
     };
 
+    // Fetch all screenshots
     document.getElementById('fetch-all-btn').onclick = function() {
         const url = document.getElementById('url-input').value.trim();
         const info = document.getElementById('additional-info').value.trim();
@@ -111,6 +169,7 @@
         });
     };
 
+    // Import image
     document.getElementById('import-image').onchange = function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -121,10 +180,12 @@
         reader.readAsDataURL(file);
     };
 
+    // Generate scenarios
     document.getElementById('generate-btn').onclick = function() {
         const url = document.getElementById('url-input').value.trim();
         const info = document.getElementById('additional-info').value.trim();
-        if (!screenshots.length) return alert('Add at least one screenshot');
+        const selectedScreens = screenshots.filter(s => s.selected).map(s => s.url);
+        if (!selectedScreens.length) return alert('Select at least one screenshot');
         document.getElementById('generate-btn').disabled = true;
         document.getElementById('scenarios-output').innerText = "Generating...";
         fetch('/api/generate_scenarios', {
@@ -133,14 +194,14 @@
             body: JSON.stringify({
                 url,
                 info,
-                screenshots
+                screenshots: selectedScreens
             })
         })
         .then(res => res.json())
         .then(data => {
             document.getElementById('generate-btn').disabled = false;
             if (data.scenarios) {
-                document.getElementById('scenarios-output').innerText = JSON.stringify(data.scenarios, null, 2);
+                renderScenarios(data.scenarios);
             } else if (data.error) {
                 document.getElementById('scenarios-output').innerText = "Error: " + data.error;
             } else {
@@ -148,6 +209,24 @@
             }
         });
     };
+
+    // Render scenarios as a styled list
+    function renderScenarios(scenarios) {
+        const out = document.getElementById('scenarios-output');
+        if (!scenarios.length) {
+            out.innerText = "No scenarios generated.";
+            return;
+        }
+        let html = '';
+        scenarios.forEach((sc, idx) => {
+            html += `<div style="margin-bottom:1.2em;padding:1em;background:#f3f4f6;border-radius:0.6em;">
+                <div style="font-weight:bold;color:#3730a3;font-size:1.08em;">${idx+1}. ${sc.name || ''}</div>
+                <div style="margin:0.5em 0 0.5em 0;white-space:pre-line;">${sc.description || ''}</div>
+                <div style="color:#6366f1;font-size:0.97em;">Tags: ${sc.tags || ''}</div>
+            </div>`;
+        });
+        out.innerHTML = html;
+    }
     </script>
 </body>
 </html>
