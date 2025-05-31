@@ -1,11 +1,11 @@
 {
     "agent_llm": "gemini",
     "agent_llm_args": {
-        "gemini_api_key": "new"
+        "gemini_api_key": "AIzaSyCY66ylwwUMy_yathgsfKM9ao4Zm_EL13Q"
     },
     "planner_llm": "gemini",
     "planner_llm_args": {
-        "gemini_api_key": "new"
+        "gemini_api_key": "AIzaSyCY66ylwwUMy_yathgsfKM9ao4Zm_EL13Q"
     },
     "headless_mode": true,
     "highlight_elements": false

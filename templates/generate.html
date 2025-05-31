@@ -71,11 +71,13 @@
     function addScreenshot(url) {
         screenshots.push({ url, selected: true });
         renderScreenshots();
+        saveGenerateState();
     }
 
     function removeScreenshot(idx) {
         const removed = screenshots.splice(idx, 1)[0];
         renderScreenshots();
+        saveGenerateState();
         // If screenshot is from server, delete it
         if (removed.url && removed.url.startsWith('/screenshots/')) {
             fetch('/api/delete_screenshot', {
@@ -89,6 +91,7 @@
     function toggleScreenshot(idx) {
         screenshots[idx].selected = !screenshots[idx].selected;
         renderScreenshots();
+        saveGenerateState();
     }
 
     function renderScreenshots() {
@@ -227,6 +230,35 @@
         });
         out.innerHTML = html;
     }
+
+    function saveGenerateState() {
+        const url = document.getElementById('url-input').value.trim();
+        const info = document.getElementById('additional-info').value.trim();
+        const screenshotsToSave = screenshots.map(s => ({ url: s.url, selected: s.selected }));
+        localStorage.setItem('generate_state', JSON.stringify({
+            url,
+            info,
+            screenshots: screenshotsToSave
+        }));
+    }
+
+    function loadGenerateState() {
+        const state = localStorage.getItem('generate_state');
+        if (!state) return;
+        try {
+            const { url, info, screenshots: savedScreenshots } = JSON.parse(state);
+            document.getElementById('url-input').value = url || '';
+            document.getElementById('additional-info').value = info || '';
+            screenshots = Array.isArray(savedScreenshots) ? savedScreenshots : [];
+            renderScreenshots();
+        } catch (e) {}
+    }
+
+    // Load the saved state on page load
+    window.addEventListener('DOMContentLoaded', loadGenerateState);
+
+    document.getElementById('url-input').addEventListener('input', saveGenerateState);
+    document.getElementById('additional-info').addEventListener('input', saveGenerateState);
     </script>
 </body>
 </html>
