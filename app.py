@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, render_template, request, Response, send_file
+from flask import Flask, render_template, request, redirect, url_for, jsonify, render_template, request, Response, send_file, send_from_directory
 import json
 import os
 import asyncio
@@ -7,7 +7,6 @@ from browser_use import Agent
 from browser_use.browser import BrowserProfile
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import AzureChatOpenAI
-from weasyprint import HTML, CSS
 from pydantic import SecretStr
 from dotenv import load_dotenv
 from report_generator import render_report 
@@ -376,6 +375,133 @@ def settings():
         agentLlmSettings=settings_obj.get("agent_llm_args", {}),
         plannerLlmSettings=settings_obj.get("planner_llm_args", {})
     )
+
+@app.route('/generate')
+def generate():
+    return render_template('generate.html')
+
+# Ensure the screenshots folder exists
+SCREENSHOTS_FOLDER = os.path.join(os.getcwd(), 'screenshots')
+os.makedirs(SCREENSHOTS_FOLDER, exist_ok=True)
+
+@app.route('/api/fetch_screenshot', methods=['POST'])
+def api_fetch_screenshot():
+    url = request.json.get('url')
+    if not url:
+        return jsonify({'error': 'No URL provided'}), 400
+    try:
+        agent = Agent(task=f"go to {url}", browser_profile=browser_config)
+        history = asyncio.run(agent.run())
+        screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
+        if screenshots:
+            # Save the first screenshot to the folder
+            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, 'screenshot1.png')
+            with open(screenshot_path, 'wb') as f:
+                f.write(screenshots[0])
+            return jsonify({'screenshot': f'/screenshots/screenshot1.png'})
+        return jsonify({'error': 'No screenshot found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fetch_all_screenshots', methods=['POST'])
+def api_fetch_all_screenshots():
+    url = request.json.get('url')
+    info = request.json.get('info', '')
+    if not url:
+        return jsonify({'error': 'No URL provided'}), 400
+    try:
+        prompt = f"{info}\ngo to {url}" if info else f"go to {url}"
+        agent = Agent(task=prompt, browser_profile=browser_config)
+        history = asyncio.run(agent.run())
+        screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
+        screenshot_paths = []
+        for i, screenshot in enumerate(screenshots):
+            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, f'screenshot{i + 1}.png')
+            with open(screenshot_path, 'wb') as f:
+                f.write(screenshot)
+            screenshot_paths.append(f'/screenshots/screenshot{i + 1}.png')
+        return jsonify({'screenshots': screenshot_paths})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/screenshots/<filename>')
+def serve_screenshot(filename):
+    return send_from_directory(SCREENSHOTS_FOLDER, filename)
+
+@app.route('/api/generate_scenarios', methods=['POST'])
+def api_generate_scenarios():
+    data = request.json
+    url = data.get('url', '')
+    info = data.get('info', '')
+    screenshots = data.get('screenshots', [])
+    if not screenshots:
+        return jsonify({'error': 'No screenshots provided'}), 400
+
+    # Compose the prompt as per your reference code
+    task_prompt = f"Additional Notes: {info}" if info else ""
+    url_prompt = f"Refer URL if provided: {url}" if url else ""
+    prompt = f"""
+    You are a senior QA automation engineer. 
+    Generate an elaborate end-to-end test scenario that covers all relevant test cases for the given feature in a single test flow, group by features. 
+
+    Each scenario should:
+    Include multiple sequential steps that mimic a real user or system behavior.
+    Always start the test scenario with a opening a web page or application.
+    Clearly describe the actions to be performed, including any necessary inputs or interactions.
+    Clearly specify input test data and expected outcomes.
+    Include assertions after each significant step to validate system behavior.
+    Mention any preconditions, setup data, or environment assumptions.
+    Cover happy path, edge cases, and any negative checks that can be reasonably tested within the flow.
+    Be written in a clear, concise, and structured format (you may use Gherkin-style, pseudocode, or narrative style depending on clarity).
+    Finally, ensure that the scenarios are grouped logically by feature or functionality to avoid redundancy and improve readability.
+    Each scenario should be self-contained and not rely on external context or previous scenarios.
+    
+    The goal is to have a comprehensive grouped testcases that effectively verifies most aspects of the feature under test through a realistic and comprehensive scenario.
+
+    Analyze this image of a web page or application UI.
+    {url_prompt}
+
+    {task_prompt}
+
+    For the scenario, provide:
+    1. A descriptive name
+    2. A detailed comprehensive conjunctive instruction to perform the test scenario
+    3. Relevant tags (comma-separated)
+    
+    Format your response as JSON like this:
+    {
+        "scenarios": [
+        {
+            "name": "test scenario name",
+            "description": "Go to the https://url and do all the potential login related steps...",
+            "tags": "sample, tags, here"
+        },
+        ...
+        ]
+    }
+    """
+
+    # Use the first screenshot for LLM (extend to all if needed)
+    import base64, re
+    from langchain_core.messages import HumanMessage, SystemMessage
+    try:
+        llm = get_llm()  # You should implement get_llm() as in your reference
+        messages = [
+            SystemMessage(content="You are a QA expert specializing in identifying test scenarios from UI images."),
+            HumanMessage(content=[
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": screenshots[0]}}
+            ])
+        ]
+        response = llm.invoke(messages)
+        json_match = re.search(r'\{[\s\S]*\}', response.content)
+        if json_match:
+            scenarios_data = json.loads(json_match.group(0))
+            return jsonify({'scenarios': scenarios_data.get("scenarios", [])})
+        else:
+            return jsonify({'error': 'Could not parse JSON from LLM response'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=True)

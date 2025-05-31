@@ -16,50 +16,155 @@ h2 {
     font-size: 1.5rem;
 }
 
+/* --- SUMMARY SECTION --- */
 .summary {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
-    gap: 2.2rem;
+    justify-content: flex-start;
+    gap: 2.5rem;
     flex-wrap: wrap;
     margin-bottom: 2rem;
     padding: 1.5rem 2.5rem;
-    border: none;
+    border: 2px solid #6366f1; /* Vibrant indigo */
     border-radius: 1.2rem;
-    background: #f1f5ff;
-    box-shadow: 0 4px 24px rgba(99,102,241,0.10);
+    background: #f8fafc; /* Very light blue */
+    box-shadow: 0 4px 24px rgba(99,102,241,0.08);
     min-height: 4.5rem;
 }
 
-.summary h2 {
-    margin: 0 2.5rem 0 0;
-    font-size: 1.5rem;
-    color: #3730a3;
-    flex: 0 0 auto;
-    order: -1;
+@media (max-width: 900px) {
+    .summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+
+.summary-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #6366f1; /* Indigo */
+    margin-right: 2.5rem;
     letter-spacing: 1px;
-    font-weight: 700;
-}
-
-.summary p {
-    font-size: 1.08rem;
-    color: #3d5471;
-    margin: 0;
-    white-space: nowrap;
     flex: 0 0 auto;
-    padding: 0.2rem 1.1rem;
-    border-radius: 0.7rem;
-    background: #f8fafc;
-    box-shadow: 0 1px 4px rgba(99,102,241,0.04);
-    border: 1px solid #e0e7ff;
-    font-weight: 500;
-    transition: background 0.2s, color 0.2s;
 }
 
-.summary p strong {
-    color: #6366f1;
+.summary-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.08rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    color: #1e293b;
+}
+
+.summary-label {
     font-weight: 700;
-    margin-right: 0.3em;
+    color: #6366f1; /* Indigo */
+    margin-right: 0.2em;
+    font-size: 1.05em;
+}
+
+.summary-value {
+    font-weight: 700;
+    color: #d97706; /* Orange */
+    font-size: 1.05em;
+}
+
+.summary-status {
+    font-weight: 700;
+    color: #22c55e; /* Green for success */
+    font-size: 1.05em;
+}
+
+.status-pill {
+    display: inline-block;
+    padding: 0.18em 1.1em;
+    border-radius: 999px;
+    font-size: 1em;
+    font-weight: 700;
+    color: #fff;
+    margin-left: 0.3em;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 4px rgba(34,197,94,0.10);
+    background: #22c55e; /* Only for success */
+}
+
+/* Remove all pill styles except .status-pill */
+.summary p, .summary p strong {
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* --- STATUS PILL (ONLY SUCCESS) --- */
+.status-pill {
+    display: inline-block;
+    padding: 0.18em 1.1em;
+    border-radius: 999px;
+    font-size: 1em;
+    font-weight: 700;
+    color: #fff;
+    margin-left: 0.3em;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 4px rgba(34,197,94,0.10);
+    background: #22c55e; /* Only keep for success */
+}
+.status-failure {
+    background: #ef4444;
+    /* If you want to keep failure pill elsewhere, keep this. Otherwise, remove. */
+}
+
+/* --- TABLE HEADER --- */
+th {
+    background-color: #6366f1; /* Vibrant indigo */
+    color: #fff;
+    font-weight: 700;
+}
+
+/* --- TABLE ROWS --- */
+tr:nth-child(even) {
+    background-color: #f1f5f9; /* Soft blue-gray */
+}
+tr:nth-child(odd) {
+    background-color: #fff;
+}
+
+/* --- ACCORDION HEADER --- */
+.accordion-header {
+    background-color: #a5b4fc; /* Light indigo */
+    color: #232946;
+    border-bottom: 1px solid #6366f1;
+}
+
+/* --- BUTTONS --- */
+.download-btn {
+    margin-top: 0.625em;
+    background: #0ea5e9; /* Vibrant blue */
+    color: #fff;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 0.375em;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 0.5em;
+    box-shadow: 0 0.125em 0.375em rgba(14,165,233,0.10);
+    transition: none; /* Remove hover/transition */
+}
+
+/* Remove hover style */
+.download-btn:hover {
+    background: #0ea5e9;
+    color: #fff;
 }
 
 /* Table styling */
@@ -209,42 +314,4 @@ td.action-log {
     border-radius: 6px;
     padding: 0.25rem 0.4rem;
     box-sizing: border-box;
-}
-
-/* Download button */
-.download-btn {
-    margin-top: 0.625em;
-    background: #06b6d4;
-    color: #fff;
-    border: none;
-    padding: 0.5em 1em;
-    border-radius: 0.375em;
-    cursor: pointer;
-    font-weight: 600;
-    margin-left: 0.5em;
-    box-shadow: 0 0.125em 0.375em rgba(6,182,212,0.08);
-    transition: background 0.2s;
-}
-.download-btn:hover {
-    background: #0ea5e9;
-    color: #fff;
-}
-
-/* Status pill */
-.status-pill {
-    display: inline-block;
-    padding: 0.18em 1.1em;
-    border-radius: 999px;
-    font-size: 1em;
-    font-weight: 700;
-    color: #fff;
-    margin-left: 0.3em;
-    letter-spacing: 0.5px;
-    box-shadow: 0 1px 4px rgba(99,102,241,0.07);
-}
-.status-success {
-    background: #22c55e;
-}
-.status-failure {
-    background: #ef4444;
 }

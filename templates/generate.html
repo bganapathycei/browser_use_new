@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Test Scenarios</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='test_result.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='generate.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header-row">
+            <div class="logo-stack">
+                <img src="{{ url_for('static', filename='cei-social.png') }}" alt="Logo" class="logo-img">
+                <img src="{{ url_for('static', filename='CEI-QA-RPA-Logo-Trans.png') }}" alt="Logo" class="logo-img">
+            </div>
+        </div>
+        <div class="side-nav">
+            <button class="nav-btn" onclick="window.location.href='/'" title="Home">
+                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 24 24">
+                    <path d="M 12 2 A 1 1 0 0 0 11.289062 2.296875 L 1.203125 11.097656 A 0.5 0.5 0 0 0 1 11.5 A 0.5 0.5 0 0 0 1.5 12 L 4 12 L 4 20 C 4 20.552 4.448 21 5 21 L 9 21 C 9.552 21 10 20.552 10 20 L 10 14 L 14 14 L 14 20 C 14 20.552 14.448 21 15 21 L 19 21 C 19.552 21 20 20.552 20 20 L 20 12 L 22.5 12 A 0.5 0.5 0 0 0 23 11.5 A 0.5 0.5 0 0 0 22.796875 11.097656 L 12.716797 2.3027344 A 1 1 0 0 0 12.710938 2.296875 A 1 1 0 0 0 12 2 z"></path>
+                </svg>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='/generate'" title="Generate">
+                <span class="nav-icon">&#9889;</span>
+                <span class="nav-label">Generate</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='/history'" title="History">
+                <span class="nav-icon">&#128340;</span>
+                <span class="nav-label">History</span>
+            </button>
+            <button class="nav-btn" onclick="window.location.href='/settings'" title="Settings">
+                <span class="nav-icon">&#9881;</span>
+                <span class="nav-label">Settings</span>
+            </button>
+        </div>
+        <div class="generate-main">
+            <!-- Left Side: Screenshot & Info -->
+            <div class="generate-left">
+                <label for="url-input"><strong>Enter URL</strong></label>
+                <input id="url-input" type="text" placeholder="https://example.com" style="width:100%;padding:0.7em;margin-bottom:1em;border-radius:0.5em;border:1px solid #bdbdbd;">
+                <div style="display:flex;gap:0.7em;">
+                    <button class="run-button" id="fetch-screenshot-btn" type="button">Fetch Screenshot</button>
+                    <button class="edit-button" id="fetch-all-btn" type="button">Fetch All Screenshots</button>
+                    <label class="create-button" style="cursor:pointer;">
+                        Import Image
+                        <input type="file" id="import-image" accept="image/*" style="display:none;">
+                    </label>
+                </div>
+                <div class="screenshot-list" id="screenshot-list"></div>
+                <div class="additional-info">
+                    <label for="additional-info"><strong>Additional Info</strong></label>
+                    <textarea id="additional-info" rows="4" style="width:100%;border-radius:0.5em;border:1px solid #bdbdbd;padding:0.7em;"></textarea>
+                </div>
+            </div>
+            <!-- Right Side: Generate Scenarios -->
+            <div class="generate-right">
+                <button class="generate-btn" id="generate-btn" type="button">Generate Test Scenarios</button>
+                <div class="scenarios-output" id="scenarios-output"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Screenshot display and upload logic
+    let screenshots = [];
+
+    function addScreenshot(url) {
+        const list = document.getElementById('screenshot-list');
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'screenshot-thumb';
+        img.onclick = () => window.open(url, '_blank');
+        list.appendChild(img);
+    }
+
+    document.getElementById('fetch-screenshot-btn').onclick = function() {
+        const url = document.getElementById('url-input').value.trim();
+        if (!url) return alert('Enter a URL');
+        fetch('/api/fetch_screenshot', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.screenshot) addScreenshot(data.screenshot);
+            else alert('Failed to fetch screenshot');
+        });
+    };
+
+    document.getElementById('fetch-all-btn').onclick = function() {
+        const url = document.getElementById('url-input').value.trim();
+        const info = document.getElementById('additional-info').value.trim();
+        if (!url) return alert('Enter a URL');
+        fetch('/api/fetch_all_screenshots', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url, info})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.screenshots && data.screenshots.length) {
+                data.screenshots.forEach(addScreenshot);
+            } else {
+                alert('No screenshots found');
+            }
+        });
+    };
+
+    document.getElementById('import-image').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            addScreenshot(evt.target.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    document.getElementById('generate-btn').onclick = function() {
+        const url = document.getElementById('url-input').value.trim();
+        const info = document.getElementById('additional-info').value.trim();
+        if (!screenshots.length) return alert('Add at least one screenshot');
+        document.getElementById('generate-btn').disabled = true;
+        document.getElementById('scenarios-output').innerText = "Generating...";
+        fetch('/api/generate_scenarios', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url,
+                info,
+                screenshots
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('generate-btn').disabled = false;
+            if (data.scenarios) {
+                document.getElementById('scenarios-output').innerText = JSON.stringify(data.scenarios, null, 2);
+            } else if (data.error) {
+                document.getElementById('scenarios-output').innerText = "Error: " + data.error;
+            } else {
+                document.getElementById('scenarios-output').innerText = "No scenarios generated.";
+            }
+        });
+    };
+    </script>
+</body>
+</html>

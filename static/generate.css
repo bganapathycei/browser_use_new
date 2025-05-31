@@ -1,0 +1,87 @@
+.generate-main {
+    display: flex;
+    flex-direction: row;
+    gap: 2.5rem;
+    width: 100%;
+    min-height: 80vh;
+}
+
+.generate-left, .generate-right {
+    flex: 1 1 0;
+    background: #f8fafc;
+    border-radius: 1.2rem;
+    box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.07);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.generate-left {
+    max-width: 40vw;
+}
+
+.generate-right {
+    max-width: 60vw;
+}
+
+.screenshot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    background: #f9f9f9;
+}
+
+.screenshot-thumb {
+    max-width: 180px;
+    max-height: 120px;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.additional-info {
+    margin-top: 1.5rem;
+}
+
+.image-upload-label {
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+.generate-btn {
+    margin-top: 2rem;
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    padding: 0.8em 2em;
+    border-radius: 0.5em;
+    font-size: 1.1em;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.generate-btn:disabled {
+    background: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.scenarios-output {
+    white-space: pre-wrap;
+    background: #fff;
+    border-radius: 0.7em;
+    padding: 1.2em;
+    margin-top: 1.5em;
+    font-size: 1.05em;
+    color: #232946;
+    min-height: 200px;
+    box-shadow: 0 0.125em 0.375em rgba(60, 72, 88, 0.04);
+}
+
+/* Remove borders for logos */
+.logo-img {
+    border: none;
+}
