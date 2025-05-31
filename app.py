@@ -13,6 +13,7 @@ from report_generator import render_report
 import io
 import uuid
 from datetime import datetime
+import base64
 
 load_dotenv()
 
@@ -148,74 +149,7 @@ Your automation must behave as a careful, context-aware user would, ensuring all
 """
 
 async def run_task_async(task):
-    settings = load_settings()
-    agent_llm = settings.get("agent_llm", "gemini")
-    agent_llm_args = settings.get("agent_llm_args", {})
-    planner_llm = settings.get("planner_llm", "gemini")
-    planner_llm_args = settings.get("planner_llm_args", {})
-
-    # Default model names if not set
-    agent_model = agent_llm_args.get("model-name", "gemini-2.0-flash-exp")
-    planner_model = planner_llm_args.get("model-name", "gemini-2.0-flash-exp")
-
-    # Choose LLM based on settings
-    if agent_llm == "gemini":
-        llm = ChatGoogleGenerativeAI(
-            model=agent_model,
-            api_key=SecretStr(agent_llm_args.get("gemini_api_key", os.getenv('GEMINI_API_KEY'))),
-            temperature=0.2,
-            seed=42
-        )
-    elif agent_llm == "azure_openai":
-        llm = AzureChatOpenAI(
-            model=agent_model,
-            api_version=agent_llm_args.get("azure_openai_api_version", os.getenv('AZURE_OPENAI_API_VERSION')),
-            azure_endpoint=agent_llm_args.get("azure_openai_api_endpoint", os.getenv('AZURE_OPENAI_API_ENDPOINT')),
-            api_key=SecretStr(agent_llm_args.get("azure_openai_api_key", os.getenv('AZURE_OPENAI_API_KEY')))
-        )
-    elif agent_llm == "openai":
-        from langchain_openai import ChatOpenAI
-        llm = ChatOpenAI(
-            model=agent_model,
-            api_key=SecretStr(agent_llm_args.get("openai_api_key", os.getenv('OPENAI_API_KEY')))
-        )
-    elif agent_llm == "ollama":
-        from langchain_community.chat_models import ChatOllama
-        llm = ChatOllama(
-            model=agent_model,
-            base_url=agent_llm_args.get("ollama_host", "http://localhost:11434")
-        )
-    else:
-        raise ValueError(f"Unsupported agent_llm: {agent_llm}")
-
-    if planner_llm == "azure_openai":
-        planner_llm_instance = AzureChatOpenAI(
-            model=planner_model,
-            api_version=planner_llm_args.get("azure_openai_api_version", os.getenv('AZURE_OPENAI_API_VERSION')),
-            azure_endpoint=planner_llm_args.get("azure_openai_api_endpoint", os.getenv('AZURE_OPENAI_API_ENDPOINT')),
-            api_key=SecretStr(planner_llm_args.get("azure_openai_api_key", os.getenv('AZURE_OPENAI_API_KEY')))
-        )
-    elif planner_llm == "gemini":
-        planner_llm_instance = ChatGoogleGenerativeAI(
-            model=planner_model,
-            api_key=SecretStr(planner_llm_args.get("gemini_api_key", os.getenv('GEMINI_API_KEY'))),
-            temperature=0.2,
-            seed=42
-        )
-    elif planner_llm == "openai":
-        from langchain_openai import ChatOpenAI
-        planner_llm_instance = ChatOpenAI(
-            model=planner_model,
-            api_key=SecretStr(planner_llm_args.get("openai_api_key", os.getenv('OPENAI_API_KEY')))
-        )
-    elif planner_llm == "ollama":
-        from langchain_community.chat_models import ChatOllama
-        planner_llm_instance = ChatOllama(
-            model=planner_model,
-            base_url=planner_llm_args.get("ollama_host", "http://localhost:11434")
-        )
-    else:
-        planner_llm_instance = llm  # fallback
+    llm, planner_llm_instance = get_llm()
 
     agent = Agent(
         task=task,
@@ -380,9 +314,13 @@ def settings():
 def generate():
     return render_template('generate.html')
 
-# Ensure the screenshots folder exists
+
 SCREENSHOTS_FOLDER = os.path.join(os.getcwd(), 'screenshots')
 os.makedirs(SCREENSHOTS_FOLDER, exist_ok=True)
+
+@app.route('/screenshots/<filename>')
+def serve_screenshot(filename):
+    return send_from_directory(SCREENSHOTS_FOLDER, filename)
 
 @app.route('/api/fetch_screenshot', methods=['POST'])
 def api_fetch_screenshot():
@@ -390,18 +328,32 @@ def api_fetch_screenshot():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
     try:
-        agent = Agent(task=f"go to {url}", browser_profile=browser_config)
+        llm, planner_llm_instance = get_llm()
+        agent = Agent(task=f"go to {url}", llm=llm, browser_profile=browser_config)
         history = asyncio.run(agent.run())
-        screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
-        if screenshots:
-            # Save the first screenshot to the folder
-            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, 'screenshot1.png')
-            with open(screenshot_path, 'wb') as f:
-                f.write(screenshots[0])
-            return jsonify({'screenshot': f'/screenshots/screenshot1.png'})
-        return jsonify({'error': 'No screenshot found'}), 404
+
+        if not hasattr(history, 'screenshots'):
+            return jsonify({'error': 'No screenshot method available in history'}), 500
+
+        screenshots = history.screenshots()
+        if not screenshots:
+            return jsonify({'error': 'No screenshots captured'}), 404
+
+        # screenshots[0] may be bytes or base64 string
+        img_data = screenshots[1]
+        if isinstance(img_data, bytes):
+            filename = f"screenshot_{uuid.uuid4().hex}.png"
+            filepath = os.path.join(SCREENSHOTS_FOLDER, filename)
+            with open(filepath, "wb") as f:
+                f.write(img_data)
+        else:
+            filename = save_base64_image(img_data, SCREENSHOTS_FOLDER)
+
+        image_url = url_for('serve_screenshot', filename=filename)
+        return jsonify({'screenshot': image_url})
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f"Exception occurred: {str(e)}"}), 500
 
 @app.route('/api/fetch_all_screenshots', methods=['POST'])
 def api_fetch_all_screenshots():
@@ -410,26 +362,32 @@ def api_fetch_all_screenshots():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
     try:
+        llm, planner_llm_instance = get_llm()
         prompt = f"{info}\ngo to {url}" if info else f"go to {url}"
-        agent = Agent(task=prompt, browser_profile=browser_config)
+        agent = Agent(task=prompt, llm=llm, browser_profile=browser_config)
         history = asyncio.run(agent.run())
         screenshots = history.screenshots() if hasattr(history, 'screenshots') else []
-        screenshot_paths = []
-        for i, screenshot in enumerate(screenshots):
-            screenshot_path = os.path.join(SCREENSHOTS_FOLDER, f'screenshot{i + 1}.png')
-            with open(screenshot_path, 'wb') as f:
-                f.write(screenshot)
-            screenshot_paths.append(f'/screenshots/screenshot{i + 1}.png')
-        return jsonify({'screenshots': screenshot_paths})
+
+        image_urls = []
+        for img_data in screenshots:
+            if isinstance(img_data, bytes):
+                filename = f"screenshot_{uuid.uuid4().hex}.png"
+                filepath = os.path.join(SCREENSHOTS_FOLDER, filename)
+                with open(filepath, "wb") as f:
+                    f.write(img_data)
+            else:
+                filename = save_base64_image(img_data, SCREENSHOTS_FOLDER)
+            image_urls.append(url_for('serve_screenshot', filename=filename))
+        return jsonify({'screenshots': image_urls})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/screenshots/<filename>')
-def serve_screenshot(filename):
-    return send_from_directory(SCREENSHOTS_FOLDER, filename)
-
 @app.route('/api/generate_scenarios', methods=['POST'])
 def api_generate_scenarios():
+    import re
+    import json as pyjson
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     data = request.json
     url = data.get('url', '')
     info = data.get('info', '')
@@ -469,39 +427,138 @@ def api_generate_scenarios():
     3. Relevant tags (comma-separated)
     
     Format your response as JSON like this:
-    {
+    {{
         "scenarios": [
-        {
+        {{
             "name": "test scenario name",
             "description": "Go to the https://url and do all the potential login related steps...",
             "tags": "sample, tags, here"
-        },
+        }},
         ...
         ]
-    }
+    }}
     """
 
-    # Use the first screenshot for LLM (extend to all if needed)
-    import base64, re
-    from langchain_core.messages import HumanMessage, SystemMessage
     try:
-        llm = get_llm()  # You should implement get_llm() as in your reference
-        messages = [
-            SystemMessage(content="You are a QA expert specializing in identifying test scenarios from UI images."),
-            HumanMessage(content=[
-                {"type": "text", "text": prompt},
-                {"type": "image_url", "image_url": {"url": screenshots[0]}}
-            ])
-        ]
-        response = llm.invoke(messages)
-        json_match = re.search(r'\{[\s\S]*\}', response.content)
-        if json_match:
-            scenarios_data = json.loads(json_match.group(0))
-            return jsonify({'scenarios': scenarios_data.get("scenarios", [])})
-        else:
-            return jsonify({'error': 'Could not parse JSON from LLM response'}), 500
+        llm, planner_llm_instance = get_llm()
+        all_scenarios = []
+        for image_url in screenshots:
+            # Convert the URL (e.g., /screenshots/filename.png) to a file path
+            if image_url.startswith('/screenshots/'):
+                # It's a file URL, get the file path
+                filename = image_url.split('/')[-1]
+                image_path = os.path.join(SCREENSHOTS_FOLDER, filename)
+                with open(image_path, "rb") as img_file:
+                    base64_image = base64.b64encode(img_file.read()).decode('utf-8')
+            elif image_url.startswith('data:image'):
+                # It's a base64 data URL, extract the base64 part
+                base64_image = image_url.split(',', 1)[1]
+            else:
+                return jsonify({'error': f'Invalid screenshot reference: {image_url}'}), 400
+
+            # Prepare messages for LLM
+            messages = [
+                SystemMessage(content="You are a QA expert specializing in identifying test scenarios from UI images."),
+                HumanMessage(content=[
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
+                ])
+            ]
+            response = llm.invoke(messages)
+            json_match = re.search(r'\{[\s\S]*\}', response.content)
+            if json_match:
+                scenarios_data = pyjson.loads(json_match.group(0))
+                scenarios = scenarios_data.get("scenarios", [])
+                all_scenarios.extend(scenarios)
+            else:
+                return jsonify({'error': 'Could not parse JSON from LLM response'}), 500
+        return jsonify({'scenarios': all_scenarios})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def get_llm():
+    settings = load_settings()
+    agent_llm = settings.get("agent_llm", "gemini")
+    agent_llm_args = settings.get("agent_llm_args", {})
+    planner_llm = settings.get("planner_llm", "gemini")
+    planner_llm_args = settings.get("planner_llm_args", {})
+
+    # Default model names if not set
+    agent_model = agent_llm_args.get("model-name", "gemini-2.0-flash-exp")
+    planner_model = planner_llm_args.get("model-name", "gemini-2.0-flash-exp")
+
+    # Choose LLM based on settings
+    if agent_llm == "gemini":
+        llm = ChatGoogleGenerativeAI(
+            model=agent_model,
+            api_key=SecretStr(agent_llm_args.get("gemini_api_key", os.getenv('GEMINI_API_KEY'))),
+            temperature=0.2,
+            seed=42
+        )
+    elif agent_llm == "azure_openai":
+        llm = AzureChatOpenAI(
+            model=agent_model,
+            api_version=agent_llm_args.get("azure_openai_api_version", os.getenv('AZURE_OPENAI_API_VERSION')),
+            azure_endpoint=agent_llm_args.get("azure_openai_api_endpoint", os.getenv('AZURE_OPENAI_API_ENDPOINT')),
+            api_key=SecretStr(agent_llm_args.get("azure_openai_api_key", os.getenv('AZURE_OPENAI_API_KEY')))
+        )
+    elif agent_llm == "openai":
+        from langchain_openai import ChatOpenAI
+        llm = ChatOpenAI(
+            model=agent_model,
+            api_key=SecretStr(agent_llm_args.get("openai_api_key", os.getenv('OPENAI_API_KEY')))
+        )
+    elif agent_llm == "ollama":
+        from langchain_community.chat_models import ChatOllama
+        llm = ChatOllama(
+            model=agent_model,
+            base_url=agent_llm_args.get("ollama_host", "http://localhost:11434")
+        )
+    else:
+        raise ValueError(f"Unsupported agent_llm: {agent_llm}")
+
+    if planner_llm == "azure_openai":
+        planner_llm_instance = AzureChatOpenAI(
+            model=planner_model,
+            api_version=planner_llm_args.get("azure_openai_api_version", os.getenv('AZURE_OPENAI_API_VERSION')),
+            azure_endpoint=planner_llm_args.get("azure_openai_api_endpoint", os.getenv('AZURE_OPENAI_API_ENDPOINT')),
+            api_key=SecretStr(planner_llm_args.get("azure_openai_api_key", os.getenv('AZURE_OPENAI_API_KEY')))
+        )
+    elif planner_llm == "gemini":
+        planner_llm_instance = ChatGoogleGenerativeAI(
+            model=planner_model,
+            api_key=SecretStr(planner_llm_args.get("gemini_api_key", os.getenv('GEMINI_API_KEY'))),
+            temperature=0.2,
+            seed=42
+        )
+    elif planner_llm == "openai":
+        from langchain_openai import ChatOpenAI
+        planner_llm_instance = ChatOpenAI(
+            model=planner_model,
+            api_key=SecretStr(planner_llm_args.get("openai_api_key", os.getenv('OPENAI_API_KEY')))
+        )
+    elif planner_llm == "ollama":
+        from langchain_community.chat_models import ChatOllama
+        planner_llm_instance = ChatOllama(
+            model=planner_model,
+            base_url=planner_llm_args.get("ollama_host", "http://localhost:11434")
+        )
+    else:
+        planner_llm_instance = llm  # fallback
+
+    return llm, planner_llm_instance
+
+
+def save_base64_image(base64_str, folder):
+    # Remove header if present
+    if base64_str.startswith('data:image'):
+        base64_str = base64_str.split(',', 1)[1]
+    img_bytes = base64.b64decode(base64_str)
+    filename = f"screenshot_{uuid.uuid4().hex}.png"
+    filepath = os.path.join(folder, filename)
+    with open(filepath, "wb") as f:
+        f.write(img_bytes)
+    return filename 
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=True)
