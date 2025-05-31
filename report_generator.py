@@ -96,13 +96,31 @@ def render_report(history_data: dict, test_run_id: str = None) -> str:
     # Add summary section at the top
     report_content += f"""
     <div class="summary">
-        <h2>Overall Test Run Summary</h2>
-        <p><strong>Test Run ID:</strong> {test_run_id if test_run_id else "N/A"}</p>
-        <p><strong>Status:</strong>{ overall_status }</span></p>
-        <p><strong>Total Duration:</strong> {round(overall_duration, 2)} seconds</p>
-        <p><strong>Total Tokens:</strong> {total_tokens}</p>
-        <p><strong>Start Time:</strong> {start_time_str}</p>
-        <p><strong>End Time:</strong> {end_time_str}</p>
+        <div class="summary-title">Overall Test Run Summary</div>
+        <div class="summary-field">
+            <span class="summary-label">Test Run ID:</span>
+            <span class="summary-value">{test_run_id if test_run_id else "N/A"}</span>
+        </div>
+        <div class="summary-field">
+            <span class="summary-label">Status:</span>
+            <span class="status-pill">{overall_status}</span>
+        </div>
+        <div class="summary-field">
+            <span class="summary-label">Total Duration:</span>
+            <span class="summary-value">{round(overall_duration, 2)} seconds</span>
+        </div>
+        <div class="summary-field">
+            <span class="summary-label">Total Tokens:</span>
+            <span class="summary-value">{total_tokens}</span>
+        </div>
+        <div class="summary-field">
+            <span class="summary-label">Start Time:</span>
+            <span class="summary-value">{start_time_str}</span>
+        </div>
+        <div class="summary-field">
+            <span class="summary-label">End Time:</span>
+            <span class="summary-value">{end_time_str}</span>
+        </div>
     </div>
     """
 
